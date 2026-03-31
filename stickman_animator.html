@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StickMan 3D Animator - Creador de Animaciones</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 350px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-content {
+            flex: 1;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: calc(100vh - 80px);
+        }
+
+        .controls-bar {
+            height: 80px;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            padding: 0 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin: 15px 0 10px 0;
+            color: #feca57;
+            border-bottom: 2px solid #feca57;
+            padding-bottom: 5px;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #ddd;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        input[type="color"] {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(45deg, #11998e, #38ef7d);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(45deg, #eb3349, #f45c43);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .value-display {
+            text-align: right;
+            font-size: 12px;
+            color: #feca57;
+            margin-top: -5px;
+            margin-bottom: 10px;
+        }
+
+        .animation-presets {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .preset-btn {
+            padding: 10px;
+            font-size: 12px;
+        }
+
+        #recording-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: #ff0000;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .joint-info {
+            font-size: 12px;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .tab-container {
+            display: flex;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .tab:first-child {
+            border-radius: 8px 0 0 8px;
+        }
+
+        .tab:last-child {
+            border-radius: 0 8px 8px 0;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .timeline {
+            width: 100%;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            width: 3px;
+            height: 100%;
+            background: #feca57;
+            left: 0;
+            transition: left 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h1>🎬 StickMan 3D Animator</h1>
+            
+            <div class="tab-container">
+                <button class="tab active" onclick="switchTab('appearance')">Apariencia</button>
+                <button class="tab" onclick="switchTab('animation')">Animación</button>
+                <button class="tab" onclick="switchTab('export')">Exportar</button>
+            </div>
+
+            <!-- Pestaña Apariencia -->
+            <div id="appearance-tab" class="tab-content active">
+                <div class="control-group">
+                    <h2>🎨 Color del StickMan</h2>
+                    <label>Color Principal:</label>
+                    <input type="color" id="stickman-color" value="#ffffff">
+                </div>
+
+                <div class="control-group">
+                    <h2>📐 Proporciones</h2>
+                    <label>Altura de la Cabeza</label>
+                    <input type="range" id="head-size" min="0.5" max="2" step="0.1" value="1">
+                    <div class="value-display" id="head-size-value">1.0</div>
+
+                    <label>Grosor del Cuerpo</label>
+                    <input type="range" id="body-thickness" min="0.05" max="0.3" step="0.01" value="0.1">
+                    <div class="value-display" id="body-thickness-value">0.10</div>
+
+                    <label>Longitud de Brazos</label>
+                    <input type="range" id="arm-length" min="0.5" max="1.5" step="0.1" value="1">
+                    <div class="value-display" id="arm-length-value">1.0</div>
+
+                    <label>Longitud de Piernas</label>
+                    <input type="range" id="leg-length" min="0.5" max="1.5" step="0.1" value="1">
+                    <div class="value-display" id="leg-length-value">1.0</div>
+                </div>
+
+                <div class="control-group">
+                    <h2>👁️ Cámara</h2>
+                    <label>Zoom</label>
+                    <input type="range" id="camera-zoom" min="2" max="20" step="0.5" value="8">
+                    <div class="value-display" id="camera-zoom-value">8.0</div>
+
+                    <button class="btn-primary" onclick="resetCamera()">Resetear Cámara</button>
+                </div>
+            </div>
+
+            <!-- Pestaña Animación -->
+            <div id="animation-tab" class="tab-content">
+                <div class="control-group">
+                    <h2>🎭 Animaciones Predefinidas</h2>
+                    <div class="animation-presets">
+                        <button class="btn-primary preset-btn" onclick="playAnimation('idle')">Idle</button>
+                        <button class btn-primary preset-btn" onclick="playAnimation('walk')">Caminar</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('run')">Correr</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('wave')">Saludar</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('jump')">Saltar</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('dance')">Bailar</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('punch')">Golpear</button>
+                        <button class="btn-primary preset-btn" onclick="playAnimation('kick')">Patear</button>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <h2>⚙️ Control de Animación</h2>
+                    <label>Velocidad de Animación</label>
+                    <input type="range" id="animation-speed" min="0.1" max="3" step="0.1" value="1">
+                    <div class="value-display" id="animation-speed-value">1.0</div>
+
+                    <label>Estado de la Animación</label>
+                    <select id="animation-state">
+                        <option value="playing">Reproduciendo</option>
+                        <option value="paused">Pausado</option>
+                        <option value="stopped">Detenido</option>
+                    </select>
+
+                    <button class="btn-warning" onclick="toggleAnimation()">Alternar Play/Pause</button>
+                </div>
+
+                <div class="control-group">
+                    <h2>🎛️ Control Manual de Articulación</h2>
+                    <label>Brazo Derecho (X)</label>
+                    <input type="range" id="right-arm-x" min="-3.14" max="3.14" step="0.1" value="0">
+                    <div class="value-display" id="right-arm-x-value">0.00</div>
+
+                    <label>Brazo Derecho (Z)</label>
+                    <input type="range" id="right-arm-z" min="-3.14" max="3.14" step="0.1" value="0">
+                    <div class="value-display" id="right-arm-z-value">0.00</div>
+
+                    <label>Brazo Izquierdo (X)</label>
+                    <input type="range" id="left-arm-x" min="-3.14" max="3.14" step="0.1" value="0">
+                    <div class="value-display" id="left-arm-x-value">0.00</div>
+
+                    <label>Pierna Derecha (X)</label>
+                    <input type="range" id="right-leg-x" min="-3.14" max="3.14" step="0.1" value="0">
+                    <div class="value-display" id="right-leg-x-value">0.00</div>
+
+                    <label>Pierna Izquierda (X)</label>
+                    <input type="range" id="left-leg-x" min="-3.14" max="3.14" step="0.1" value="0">
+                    <div class="value-display" id="left-leg-x-value">0.00</div>
+
+                    <button class="btn-danger" onclick="resetJoints()">Resetear Articulaciones</button>
+                </div>
+            </div>
+
+            <!-- Pestaña Exportar -->
+            <div id="export-tab" class="tab-content">
+                <div class="control-group">
+                    <h2>📹 Configuración de Video</h2>
+                    <label>Formato de Video</label>
+                    <select id="video-format">
+                        <option value="webm">WebM (Recomendado)</option>
+                        <option value="mp4">MP4</option>
+                        <option value="gif">GIF Animado</option>
+                    </select>
+
+                    <label>Calidad</label>
+                    <select id="video-quality">
+                        <option value="high">Alta (1080p)</option>
+                        <option value="medium" selected>Media (720p)</option>
+                        <option value="low">Baja (480p)</option>
+                    </select>
+
+                    <label>FPS (Frames por Segundo)</label>
+                    <select id="video-fps">
+                        <option value="24">24 FPS (Cine)</option>
+                        <option value="30" selected>30 FPS (Estándar)</option>
+                        <option value="60">60 FPS (Suave)</option>
+                    </select>
+
+                    <label>Duración (segundos)</label>
+                    <input type="range" id="video-duration" min="1" max="30" step="1" value="5">
+                    <div class="value-display" id="video-duration-value">5 segundos</div>
+                </div>
+
+                <div class="control-group">
+                    <h2>💾 Exportar</h2>
+                    <button class="btn-success" onclick="startRecording()" id="record-btn">🔴 Iniciar Grabación</button>
+                    <button class="btn-danger" onclick="stopRecording()" id="stop-btn" disabled>⏹️ Detener y Guardar</button>
+                    
+                    <div class="timeline">
+                        <div class="timeline-marker" id="timeline-marker"></div>
+                    </div>
+                    <p class="joint-info" id="recording-status">Listo para grabar</p>
+                </div>
+
+                <div class="control-group">
+                    <h2>📸 Capturas</h2>
+                    <button class="btn-primary" onclick="takeScreenshot()">📷 Capturar Pantalla</button>
+                    <button class="btn-primary" onclick="exportAsGLTF()">💾 Exportar Modelo 3D (glTF)</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="canvas-container"></div>
+            <div id="recording-indicator">● GRABANDO</div>
+        </div>
+    </div>
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- CCapture.js para grabación -->
+    <script src="https://unpkg.com/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
+
+    <script>
+        // Variables globales
+        let scene, camera, renderer, controls;
+        let stickman = {};
+        let mixer, currentAction, clock;
+        let animations = {};
+        let isRecording = false;
+        let capturer;
+        let animationTime = 0;
+        let manualMode = true;
+
+        // Inicialización
+        function init() {
+            // Escena
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 10, 50);
+
+            // Cámara
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.5, 5);
+
+            // Renderizador
+            const container = document.getElementById('canvas-container');
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            // Controles de órbita
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.minDistance = 2;
+            controls.maxDistance = 20;
+            controls.target.set(0, 1, 0);
+
+            // Iluminación
+            setupLights();
+
+            // Suelo
+            createFloor();
+
+            // Crear StickMan
+            createStickMan();
+
+            // Reloj para animaciones
+            clock = new THREE.Clock();
+
+            // Event listeners
+            setupEventListeners();
+
+            // Loop de animación
+            animate();
+        }
+
+        function setupLights() {
+            // Luz ambiental
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+            scene.add(ambientLight);
+
+            // Luz direccional principal
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(5, 10, 7);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+
+            // Luz de relleno
+            const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+            fillLight.position.set(-5, 5, -5);
+            scene.add(fillLight);
+
+            // Luz puntual para efecto
+            const pointLight = new THREE.PointLight(0x667eea, 0.5, 10);
+            pointLight.position.set(0, 3, 0);
+            scene.add(pointLight);
+        }
+
+        function createFloor() {
+            const floorGeometry = new THREE.PlaneGeometry(20, 20);
+            const floorMaterial = new THREE.MeshStandardMaterial({ 
+                color: 0x2d3436,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+            floor.rotation.x = -Math.PI / 2;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(20, 20, 0x444444, 0x222222);
+            scene.add(gridHelper);
+        }
+
+        function createStickMan() {
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0xffffff,
+                roughness: 0.3,
+                metalness: 0.7
+            });
+
+            // Grupo principal del stickman
+            stickman.root = new THREE.Group();
+            stickman.root.position.y = 0;
+
+            // Cabeza
+            const headGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+            stickman.head = new THREE.Mesh(headGeometry, material);
+            stickman.head.position.y = 1.7;
+            stickman.head.castShadow = true;
+            stickman.root.add(stickman.head);
+
+            // Cuerpo
+            const bodyGeometry = new THREE.CylinderGeometry(0.1, 0.1, 0.8, 16);
+            stickman.body = new THREE.Mesh(bodyGeometry, material);
+            stickman.body.position.y = 1.1;
+            stickman.body.castShadow = true;
+            stickman.root.add(stickman.body);
+
+            // Hombros (grupo para brazos)
+            stickman.shoulders = new THREE.Group();
+            stickman.shoulders.position.y = 1.4;
+            stickman.root.add(stickman.shoulders);
+
+            // Brazo derecho
+            stickman.rightArm = new THREE.Group();
+            stickman.rightArm.position.x = 0.25;
+            
+            const upperArmGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.4, 16);
+            stickman.rightUpperArm = new THREE.Mesh(upperArmGeometry, material);
+            stickman.rightUpperArm.position.y = -0.2;
+            stickman.rightUpperArm.castShadow = true;
+            stickman.rightArm.add(stickman.rightUpperArm);
+
+            stickman.rightForearm = new THREE.Group();
+            stickman.rightForearm.position.y = -0.4;
+            
+            stickman.rightLowerArm = new THREE.Mesh(upperArmGeometry, material);
+            stickman.rightLowerArm.position.y = -0.2;
+            stickman.rightLowerArm.castShadow = true;
+            stickman.rightForearm.add(stickman.rightLowerArm);
+
+            stickman.rightArm.add(stickman.rightForearm);
+            stickman.shoulders.add(stickman.rightArm);
+
+            // Brazo izquierdo
+            stickman.leftArm = new THREE.Group();
+            stickman.leftArm.position.x = -0.25;
+            
+            stickman.leftUpperArm = new THREE.Mesh(upperArmGeometry, material);
+            stickman.leftUpperArm.position.y = -0.2;
+            stickman.leftUpperArm.castShadow = true;
+            stickman.leftArm.add(stickman.leftUpperArm);
+
+            stickman.leftForearm = new THREE.Group();
+            stickman.leftForearm.position.y = -0.4;
+            
+            stickman.leftLowerArm = new THREE.Mesh(upperArmGeometry, material);
+            stickman.leftLowerArm.position.y = -0.2;
+            stickman.leftLowerArm.castShadow = true;
+            stickman.leftForearm.add(stickman.leftLowerArm);
+
+            stickman.leftArm.add(stickman.leftForearm);
+            stickman.shoulders.add(stickman.leftArm);
+
+            // Cadera (grupo para piernas)
+            stickman.hips = new THREE.Group();
+            stickman.hips.position.y = 0.7;
+            stickman.root.add(stickman.hips);
+
+            // Pierna derecha
+            stickman.rightLeg = new THREE.Group();
+            stickman.rightLeg.position.x = 0.15;
+            
+            const upperLegGeometry = new THREE.CylinderGeometry(0.06, 0.06, 0.5, 16);
+            stickman.rightUpperLeg = new THREE.Mesh(upperLegGeometry, material);
+            stickman.rightUpperLeg.position.y = -0.25;
+            stickman.rightUpperLeg.castShadow = true;
+            stickman.rightLeg.add(stickman.rightUpperLeg);
+
+            stickman.rightLowerLeg = new THREE.Group();
+            stickman.rightLowerLeg.position.y = -0.5;
+            
+            stickman.rightLowerLegMesh = new THREE.Mesh(upperLegGeometry, material);
+            stickman.rightLowerLegMesh.position.y = -0.25;
+            stickman.rightLowerLegMesh.castShadow = true;
+            stickman.rightLowerLeg.add(stickman.rightLowerLegMesh);
+
+            stickman.rightLeg.add(stickman.rightLowerLeg);
+            stickman.hips.add(stickman.rightLeg);
+
+            // Pierna izquierda
+            stickman.leftLeg = new THREE.Group();
+            stickman.leftLeg.position.x = -0.15;
+            
+            stickman.leftUpperLeg = new THREE.Mesh(upperLegGeometry, material);
+            stickman.leftUpperLeg.position.y = -0.25;
+            stickman.leftUpperLeg.castShadow = true;
+            stickman.leftLeg.add(stickman.leftUpperLeg);
+
+            stickman.leftLowerLeg = new THREE.Group();
+            stickman.leftLowerLeg.position.y = -0.5;
+            
+            stickman.leftLowerLegMesh = new THREE.Mesh(upperLegGeometry, material);
+            stickman.leftLowerLegMesh.position.y = -0.25;
+            stickman.leftLowerLegMesh.castShadow = true;
+            stickman.leftLowerLeg.add(stickman.leftLowerLegMesh);
+
+            stickman.leftLeg.add(stickman.leftLowerLeg);
+            stickman.hips.add(stickman.leftLeg);
+
+            scene.add(stickman.root);
+        }
+
+        function setupEventListeners() {
+            // Color
+            document.getElementById('stickman-color').addEventListener('input', (e) => {
+                const color = new THREE.Color(e.target.value);
+                Object.values(stickman).forEach(part => {
+                    if (part && part.material) {
+                        part.material.color = color;
+                    }
+                });
+            });
+
+            // Proporciones
+            document.getElementById('head-size').addEventListener('input', (e) => {
+                const scale = parseFloat(e.target.value);
+                stickman.head.scale.set(scale, scale, scale);
+                document.getElementById('head-size-value').textContent = scale.toFixed(1);
+            });
+
+            document.getElementById('body-thickness').addEventListener('input', (e) => {
+                const thickness = parseFloat(e.target.value);
+                stickman.body.geometry.dispose();
+                stickman.body.geometry = new THREE.CylinderGeometry(thickness, thickness, 0.8, 16);
+                document.getElementById('body-thickness-value').textContent = thickness.toFixed(2);
+            });
+
+            document.getElementById('arm-length').addEventListener('input', (e) => {
+                const length = parseFloat(e.target.value);
+                stickman.rightUpperArm.scale.y = length;
+                stickman.rightLowerArm.scale.y = length;
+                stickman.leftUpperArm.scale.y = length;
+                stickman.leftLowerArm.scale.y = length;
+                document.getElementById('arm-length-value').textContent = length.toFixed(1);
+            });
+
+            document.getElementById('leg-length').addEventListener('input', (e) => {
+                const length = parseFloat(e.target.value);
+                stickman.rightUpperLeg.scale.y = length;
+                stickman.rightLowerLegMesh.scale.y = length;
+                stickman.leftUpperLeg.scale.y = length;
+                stickman.leftLowerLegMesh.scale.y = length;
+                document.getElementById('leg-length-value').textContent = length.toFixed(1);
+            });
+
+            // Cámara
+            document.getElementById('camera-zoom').addEventListener('input', (e) => {
+                const zoom = parseFloat(e.target.value);
+                camera.position.z = zoom;
+                document.getElementById('camera-zoom-value').textContent = zoom.toFixed(1);
+            });
+
+            // Velocidad de animación
+            document.getElementById('animation-speed').addEventListener('input', (e) => {
+                const speed = parseFloat(e.target.value);
+                if (mixer) {
+                    mixer.timeScale = speed;
+                }
+                document.getElementById('animation-speed-value').textContent = speed.toFixed(1);
+            });
+
+            // Estado de animación
+            document.getElementById('animation-state').addEventListener('change', (e) => {
+                const state = e.target.value;
+                if (state === 'paused') {
+                    if (mixer) mixer.timeScale = 0;
+                } else if (state === 'playing') {
+                    if (mixer) mixer.timeScale = parseFloat(document.getElementById('animation-speed').value);
+                } else if (state === 'stopped') {
+                    resetJoints();
+                }
+            });
+
+            // Controles manuales de articulaciones
+            ['right-arm-x', 'right-arm-z', 'left-arm-x', 'right-leg-x', 'left-leg-x'].forEach(joint => {
+                document.getElementById(joint).addEventListener('input', (e) => {
+                    const value = parseFloat(e.target.value);
+                    document.getElementById(`${joint}-value`).textContent = value.toFixed(2);
+                    manualMode = true;
+                    updateJoint(joint, value);
+                });
+            });
+
+            // Duración del video
+            document.getElementById('video-duration').addEventListener('input', (e) => {
+                const duration = parseInt(e.target.value);
+                document.getElementById('video-duration-value').textContent = `${duration} segundos`;
+            });
+
+            // Resize
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function updateJoint(joint, value) {
+            switch(joint) {
+                case 'right-arm-x':
+                    stickman.rightArm.rotation.x = value;
+                    break;
+                case 'right-arm-z':
+                    stickman.rightArm.rotation.z = value;
+                    break;
+                case 'left-arm-x':
+                    stickman.leftArm.rotation.x = value;
+                    break;
+                case 'right-leg-x':
+                    stickman.rightLeg.rotation.x = value;
+                    break;
+                case 'left-leg-x':
+                    stickman.leftLeg.rotation.x = value;
+                    break;
+            }
+        }
+
+        function playAnimation(animationName) {
+            manualMode = false;
+            document.getElementById('animation-state').value = 'playing';
+            
+            // Resetear todas las articulaciones primero
+            resetJoints(false);
+            
+            // Configurar la animación seleccionada
+            animations.current = animationName;
+            animationTime = 0;
+        }
+
+        function toggleAnimation() {
+            const stateSelect = document.getElementById('animation-state');
+            if (stateSelect.value === 'playing') {
+                stateSelect.value = 'paused';
+                if (mixer) mixer.timeScale = 0;
+            } else {
+                stateSelect.value = 'playing';
+                if (mixer) mixer.timeScale = parseFloat(document.getElementById('animation-speed').value);
+            }
+        }
+
+        function resetJoints(updateUI = true) {
+            manualMode = true;
+            animations.current = null;
+            
+            stickman.rightArm.rotation.x = 0;
+            stickman.rightArm.rotation.z = 0;
+            stickman.leftArm.rotation.x = 0;
+            stickman.rightLeg.rotation.x = 0;
+            stickman.leftLeg.rotation.x = 0;
+            stickman.rightForearm.rotation.x = 0;
+            stickman.leftForearm.rotation.x = 0;
+            stickman.rightLowerLeg.rotation.x = 0;
+            stickman.leftLowerLeg.rotation.x = 0;
+
+            if (updateUI) {
+                ['right-arm-x', 'right-arm-z', 'left-arm-x', 'right-leg-x', 'left-leg-x'].forEach(joint => {
+                    document.getElementById(joint).value = 0;
+                    document.getElementById(`${joint}-value`).textContent = '0.00';
+                });
+            }
+        }
+
+        function updateAnimations(delta) {
+            if (!manualMode && animations.current) {
+                animationTime += delta * parseFloat(document.getElementById('animation-speed').value);
+                
+                const t = animationTime;
+                
+                switch(animations.current) {
+                    case 'idle':
+                        // Respiración suave
+                        stickman.body.position.y = 1.1 + Math.sin(t * 2) * 0.02;
+                        stickman.rightArm.rotation.x = Math.sin(t) * 0.1;
+                        stickman.leftArm.rotation.x = Math.sin(t + Math.PI) * 0.1;
+                        break;
+
+                    case 'walk':
+                        // Caminar
+                        const walkSpeed = 3;
+                        stickman.rightLeg.rotation.x = Math.sin(t * walkSpeed) * 0.5;
+                        stickman.leftLeg.rotation.x = Math.sin(t * walkSpeed + Math.PI) * 0.5;
+                        stickman.rightArm.rotation.x = Math.sin(t * walkSpeed + Math.PI) * 0.4;
+                        stickman.leftArm.rotation.x = Math.sin(t * walkSpeed) * 0.4;
+                        stickman.body.position.y = 1.1 + Math.abs(Math.sin(t * walkSpeed * 2)) * 0.05;
+                        break;
+
+                    case 'run':
+                        // Correr
+                        const runSpeed = 6;
+                        stickman.rightLeg.rotation.x = Math.sin(t * runSpeed) * 0.8;
+                        stickman.leftLeg.rotation.x = Math.sin(t * runSpeed + Math.PI) * 0.8;
+                        stickman.rightArm.rotation.x = Math.sin(t * runSpeed + Math.PI) * 0.7;
+                        stickman.leftArm.rotation.x = Math.sin(t * runSpeed) * 0.7;
+                        stickman.rightForearm.rotation.x = Math.sin(t * runSpeed) * 0.5;
+                        stickman.leftForearm.rotation.x = Math.sin(t * runSpeed + Math.PI) * 0.5;
+                        stickman.body.position.y = 1.1 + Math.abs(Math.sin(t * runSpeed * 2)) * 0.1;
+                        break;
+
+                    case 'wave':
+                        // Saludar
+                        stickman.rightArm.rotation.x = Math.sin(t * 4) * 0.5 + 1.5;
+                        stickman.rightForearm.rotation.x = Math.sin(t * 4) * 0.3;
+                        stickman.body.position.y = 1.1 + Math.sin(t) * 0.02;
+                        break;
+
+                    case 'jump':
+                        // Saltar
+                        const jumpCycle = (t % 2) / 2; // Ciclo de 2 segundos
+                        if (jumpCycle < 0.3) {
+                            // Preparación
+                            stickman.body.position.y = 1.1 - jumpCycle * 0.5;
+                            stickman.rightLeg.rotation.x = 0.5;
+                            stickman.leftLeg.rotation.x = 0.5;
+                            stickman.rightArm.rotation.x = -0.5;
+                            stickman.leftArm.rotation.x = -0.5;
+                        } else if (jumpCycle < 0.6) {
+                            // En el aire
+                            const airProgress = (jumpCycle - 0.3) / 0.3;
+                            stickman.body.position.y = 1.1 + Math.sin(airProgress * Math.PI) * 0.8;
+                            stickman.rightLeg.rotation.x = -0.3;
+                            stickman.leftLeg.rotation.x = -0.3;
+                            stickman.rightArm.rotation.x = 1.5;
+                            stickman.leftArm.rotation.x = 1.5;
+                        } else {
+                            // Aterrizaje
+                            stickman.body.position.y = 1.1;
+                            stickman.rightLeg.rotation.x = 0;
+                            stickman.leftLeg.rotation.x = 0;
+                            stickman.rightArm.rotation.x = 0;
+                            stickman.leftArm.rotation.x = 0;
+                        }
+                        break;
+
+                    case 'dance':
+                        // Bailar
+                        stickman.rightLeg.rotation.x = Math.sin(t * 4) * 0.4;
+                        stickman.leftLeg.rotation.x = Math.sin(t * 4 + Math.PI) * 0.4;
+                        stickman.rightArm.rotation.x = Math.cos(t * 4) * 0.8;
+                        stickman.leftArm.rotation.x = Math.sin(t * 4) * 0.8;
+                        stickman.body.rotation.z = Math.sin(t * 2) * 0.2;
+                        stickman.body.position.y = 1.1 + Math.abs(Math.sin(t * 4)) * 0.05;
+                        break;
+
+                    case 'punch':
+                        // Golpear
+                        const punchCycle = t % 1.5;
+                        if (punchCycle < 0.3) {
+                            stickman.rightArm.rotation.x = -0.5 - punchCycle * 2;
+                            stickman.rightForearm.rotation.x = punchCycle * 3;
+                        } else if (punchCycle < 0.5) {
+                            stickman.rightArm.rotation.x = -1.5;
+                            stickman.rightForearm.rotation.x = 1;
+                        } else {
+                            stickman.rightArm.rotation.x = 0;
+                            stickman.rightForearm.rotation.x = 0;
+                        }
+                        break;
+
+                    case 'kick':
+                        // Patear
+                        const kickCycle = t % 2;
+                        if (kickCycle < 0.4) {
+                            stickman.rightLeg.rotation.x = kickCycle * 2;
+                            stickman.rightLowerLeg.rotation.x = kickCycle * 2.5;
+                        } else if (kickCycle < 0.6) {
+                            stickman.rightLeg.rotation.x = 1.5;
+                            stickman.rightLowerLeg.rotation.x = 2;
+                        } else {
+                            stickman.rightLeg.rotation.x = 0;
+                            stickman.rightLowerLeg.rotation.x = 0;
+                        }
+                        break;
+                }
+            }
+        }
+
+        function startRecording() {
+            if (isRecording) return;
+
+            const format = document.getElementById('video-format').value;
+            const fps = parseInt(document.getElementById('video-fps').value);
+            const quality = document.getElementById('video-quality').value;
+            
+            let width = 1280;
+            let height = 720;
+            
+            if (quality === 'high') {
+                width = 1920;
+                height = 1080;
+            } else if (quality === 'low') {
+                width = 854;
+                height = 480;
+            }
+
+            capturer = new CCapture({
+                format: format,
+                framerate: fps,
+                width: width,
+                height: height,
+                verbose: true,
+                name: 'stickman-animation'
+            });
+
+            capturer.start();
+            isRecording = true;
+
+            document.getElementById('recording-indicator').style.display = 'block';
+            document.getElementById('record-btn').disabled = true;
+            document.getElementById('stop-btn').disabled = false;
+            document.getElementById('recording-status').textContent = 'Grabando...';
+
+            // Iniciar animación automática si no está en modo manual
+            if (!manualMode && !animations.current) {
+                playAnimation('idle');
+            }
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+
+            capturer.stop();
+            isRecording = false;
+
+            document.getElementById('recording-indicator').style.display = 'none';
+            document.getElementById('record-btn').disabled = false;
+            document.getElementById('stop-btn').disabled = true;
+            document.getElementById('recording-status').textContent = 'Procesando video...';
+
+            capturer.save((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `stickman-animation.${document.getElementById('video-format').value}`;
+                a.click();
+                URL.revokeObjectURL(url);
+                document.getElementById('recording-status').textContent = '¡Video guardado!';
+            });
+        }
+
+        function takeScreenshot() {
+            renderer.render(scene, camera);
+            const dataURL = renderer.domElement.toDataURL('image/png');
+            const a = document.createElement('a');
+            a.href = dataURL;
+            a.download = 'stickman-screenshot.png';
+            a.click();
+        }
+
+        function exportAsGLTF() {
+            // Simplified GLTF export
+            alert('Para exportar como glTF, necesitarías incluir el GLTFExporter de Three.js. Por ahora, puedes usar la captura de pantalla o grabación de video.');
+        }
+
+        function resetCamera() {
+            camera.position.set(0, 1.5, 8);
+            controls.target.set(0, 1, 0);
+            document.getElementById('camera-zoom').value = 8;
+            document.getElementById('camera-zoom-value').textContent = '8.0';
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('canvas-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Actualizar animaciones
+            updateAnimations(delta);
+
+            // Actualizar controles
+            controls.update();
+
+            // Renderizar
+            renderer.render(scene, camera);
+
+            // Capturar frame si está grabando
+            if (isRecording && capturer) {
+                capturer.capture(renderer.domElement);
+                
+                // Actualizar marcador de timeline
+                const duration = parseInt(document.getElementById('video-duration').value);
+                const progress = (animationTime % duration) / duration * 100;
+                document.getElementById('timeline-marker').style.left = `${progress}%`;
+            }
+        }
+
+        // Iniciar la aplicación
+        init();
+    </script>
+</body>
+</html>
